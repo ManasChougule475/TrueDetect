@@ -1,5 +1,5 @@
 """
-URL configuration for Manas_Chougule_TrueDetect project.
+URL configuration for Manas_Chougule_TrueDetector project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -17,6 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from users import views
+     
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('login/', views.loginUser, name="login"),
+    path('logout/', views.logoutUser),
+    path('signup/', views.signUpUser),
 ]

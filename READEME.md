@@ -1,4 +1,4 @@
-# Manas_Chougule_TrueDetect
+# Manas_Chougule_TrueDetector
 
 This project implements a search functionality to find users based on phone number and display relevant results. It uses Django and Django REST Framework for the backend.
 

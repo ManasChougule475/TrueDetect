@@ -1,6 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
-from django.db.models import Q
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin, Group
 
 # Custom User Manager to handle user creation and superuser creation
 class CustomUserManager(BaseUserManager):
@@ -32,6 +31,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+    groups = models.ManyToManyField(Group, related_name='user_set_truedetect', blank=True)
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='user_set_truedetect',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
+
     def __str__(self):
         return self.phone_number
     
@@ -40,19 +48,26 @@ class UserContact(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="contacts")
     contact_name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=10)
-    spam_likelihood = models.FloatField()  # Range between 0-1
-    is_registered = models.BooleanField(default=False)
 
-    # Add indexes for optimized searching
-    class Meta:
-        indexes = [
-            models.Index(fields=['phone_number']),
-            models.Index(fields=['contact_name']),
-        ]
+    def __str__(self):
+        return f"{self.name} ({self.phone_number})"
 
 
+# Phone_Book or Contact_list of all users are stored via this model 
+class PhoneNumber(models.Model):
+    name = models.CharField(max_length=255, default = "unknown")
+    number = models.CharField(max_length=15)
+    spam_likelihood = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.number
+    
+        
 # Model to track spam actions by users
 class SpamAction(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     phone_number = models.CharField(max_length=15)
     is_marked_as_spam = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.user.name
