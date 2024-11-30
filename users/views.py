@@ -1,9 +1,10 @@
 from django.contrib.auth import authenticate, login, logout
-from users.models import CustomUser
+from users.models import CustomUser, PhoneNumber, SpamAction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
   
 @api_view(['POST'])
 def signUpUser(request):
@@ -49,12 +50,14 @@ def loginUser(request):
     if user is not None:
         # Generate JWT tokens (access and refresh)
         refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
+        # Access token instance
+        access_token = refresh.access_token
+        access_token.set_exp(lifetime=settings.AUTH_TOKEN_VALIDITY)
 
         # Return the token in the response
         return Response({
             'message': "Login successful",
-            'access_token': access_token,
+            'access_token': str(access_token),
             'refresh_token': str(refresh),
         }, status=status.HTTP_200_OK)
     else:
@@ -66,3 +69,41 @@ def logoutUser(request):
     # Log out the user (this clears the session data)
     logout(request)
     return Response({"message": "You have been logged out successfully."}, status=200)
+
+
+@api_view(['POST'])
+def mark_as_spam(request, query):
+    if request.user.is_authenticated:
+        try:
+            # Check if the user has already performed the action
+            user = request.user
+            # Create PhoneNumber instance if it does not exist
+            phone_number_instance, created = PhoneNumber.objects.get_or_create(number=query)
+
+            # Create or get the SpamAction instance for the user and phone number
+            spam_action, created = SpamAction.objects.get_or_create(user=user, phone_number=phone_number_instance)
+            
+            if not spam_action.is_marked_as_spam:
+                # Mark the action as performed by the user
+                spam_action.is_marked_as_spam = True
+                spam_action.save()
+
+            # Get the PhoneNumber instance
+            number_object = PhoneNumber.objects.get(number=query)
+
+            # Update the spam likelihood
+            number_object.spam_likelihood += 1
+            number_object.save()
+
+            return Response({"message": "Phone number is marked as spam!"}, status=status.HTTP_200_OK)
+        
+        # Handle case where multiple phone number entries are returned
+        except PhoneNumber.MultipleObjectsReturned:
+            most_spammed_number = PhoneNumber.objects.filter(number=query).order_by('-spam_likelihood').first()
+            most_spammed_number.spam_likelihood += 1
+            most_spammed_number.save()
+
+            return Response({"message": "Found multiple phone number entries. Marked most-spammed one as spam."}, status=status.HTTP_200_OK)
+        
+    else:
+        return Response({"error": "User not authenticated, please login."}, status=status.HTTP_401_UNAUTHORIZED)

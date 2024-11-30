@@ -23,4 +23,5 @@ urlpatterns = [
     path('login/', views.loginUser, name="login"),
     path('logout/', views.logoutUser),
     path('signup/', views.signUpUser),
+    path('markSpam/<str:query>/', views.mark_as_spam,name="mark_as_spam"),
 ]
