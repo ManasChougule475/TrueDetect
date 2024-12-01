@@ -1,5 +1,5 @@
 """
-WSGI config for Manas_Chougule_TrueDetector project.
+WSGI config for TrueDetector project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Manas_Chougule_TrueDetector.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TrueDetector.settings')
 
 application = get_wsgi_application()
