@@ -139,3 +139,47 @@ def search_person_by_name(request, query):
     except Exception as e:
         return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+@api_view(['GET'])
+def search_person_by_number(request, query):
+    print(query)
+    try:
+        if query.isdigit() and len(query) >= 10:
+            # check if the number is registered as user
+            registered_user = CustomUser.objects.get(phone_number=query)
+            print(registered_user)
+
+            # find person's contact list and then check if the request.user exists in the person's contact list
+            is_contact = UserContact.objects.filter(user=registered_user, phone_number=request.user.phone_number).exists()
+
+            # find that particular phone number in the global database which is mostly spammed.
+            most_spammed = PhoneNumber.objects.filter(number=query).order_by('-spam_likelihood').first()
+
+            result_info = {
+                'name': registered_user.name,
+                'phone_number': registered_user.phone_number,
+                # I (registered user) will get the email information of the person for which I am searching for only when the person has my number saved in his/her contact list
+                'email': registered_user.email if is_contact else None,
+                'spam_likelihood': most_spammed.spam_likelihood if most_spammed else None
+            }
+
+            return Response({'result': result_info})
+
+        else:
+            return Response({'error': 'Invalid phone number format'}, status=400)
+
+    except CustomUser.DoesNotExist: # searched phone number by me(registered user) does not belongs to any registered user
+        results = PhoneNumber.objects.filter(number=query) # return all names associated with searched phone number
+
+        search_results = []
+        for result in results:
+            result_info = {
+                'name': result.name,
+                'phone_number': result.number,
+                'spam_likelihood': result.spam_likelihood,
+            }
+            search_results.append(result_info)
+
+        return Response({'results': search_results})
+
+    except Exception as e:
+        return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
