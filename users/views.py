@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate, login, logout
-from users.models import CustomUser, PhoneNumber, SpamAction
+from users.models import CustomUser, PhoneNumber, SpamAction, UserContact
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
+from django.db.models import Q
   
 @api_view(['POST'])
 def signUpUser(request):
@@ -107,3 +108,34 @@ def mark_as_spam(request, query):
         
     else:
         return Response({"error": "User not authenticated, please login."}, status=status.HTTP_401_UNAUTHORIZED)
+    
+@api_view(['GET'])
+def search_person_by_name(request, query):
+    try:
+        print("search_person_by_name query=",query)
+        # Fetch results that start with the query
+        starts_with_results = PhoneNumber.objects.filter(Q(name__startswith=query)).values()
+        
+        # Fetch results that contain the query but do not start with it
+        contains_with_results = PhoneNumber.objects.filter(Q(name__icontains=query)).values().exclude(name__istartswith=query)
+        
+        print(starts_with_results)
+        print(contains_with_results)
+
+        # Combine both querysets
+        results = list(starts_with_results) + list(contains_with_results)
+        
+        search_results = []
+        for result in results:
+            result_info = {
+                'name': result['name'],
+                'phone_number': result['number'],
+                'spam_likelihood': result['spam_likelihood'],
+            }
+            search_results.append(result_info)
+
+        return Response({'results': search_results}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': f'An unexpected error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    

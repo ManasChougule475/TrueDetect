@@ -55,7 +55,7 @@ class UserContact(models.Model):
 
 # Phone_Book or Contact_list of all users are stored via this model 
 class PhoneNumber(models.Model):
-    name = models.CharField(max_length=255, default = "unknown")
+    name = models.CharField(max_length=255)
     number = models.CharField(max_length=15)
     spam_likelihood = models.IntegerField(default=0)
 
